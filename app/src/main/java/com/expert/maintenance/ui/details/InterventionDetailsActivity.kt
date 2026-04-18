@@ -68,7 +68,7 @@ class InterventionDetailsActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_INTERVENTION_ID = "intervention_id"
-        private const val API_BASE_URL = "http://192.168.5.225:80/ExpertMaintenance/backend/api.php"
+        private const val API_BASE_URL = "http://192.168.100.19/ExpertMaintenance/backend/api.php"
     }
 
 
@@ -322,18 +322,20 @@ class InterventionDetailsActivity : AppCompatActivity() {
                 }
 
                 binding.progressBar.visibility = View.GONE
-            } catch (e: Exception) {
-                Toast.makeText(this@InterventionDetailsActivity,
-                    "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
-                binding.progressBar.visibility = View.GONE
 
-                // Load photos after intervention details
+                // Load photos after intervention details (FIX: moved outside catch block)
                 Log.d("PHOTO_DEBUG", "Chargement des photos après détails intervention")
                 loadPhotos()
 
                 // Also try to download from server (in case local DB is outdated)
                 Log.d("PHOTO_DEBUG", "Vérification des images sur le serveur...")
                 downloadImagesFromServer()
+
+            } catch (e: Exception) {
+                Toast.makeText(this@InterventionDetailsActivity,
+                    "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
+                binding.progressBar.visibility = View.GONE
+                // Photos will still be loaded from the success block above
             }
         }
     }

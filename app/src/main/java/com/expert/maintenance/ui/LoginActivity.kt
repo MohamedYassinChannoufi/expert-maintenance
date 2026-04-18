@@ -34,7 +34,7 @@ class LoginActivity : AppCompatActivity() {
         private const val TAG = "LOGIN_DEBUG"
         // ✅ URL pour appareil physique sur même réseau WiFi
         // Pour émulateur Android: utiliser "http://10.0.2.2:80/ExpertMaintenance/backend/api.php"
-        private const val API_BASE_URL = "http://192.168.5.225:80/ExpertMaintenance/backend/api.php"
+        private const val API_BASE_URL = "http://192.168.100.19/ExpertMaintenance/backend/api.php"
 
         private const val PREFS_NAME = "expert_maintenance_prefs"
         private const val KEY_EMPLOYEE_ID = "current_employee_id"
