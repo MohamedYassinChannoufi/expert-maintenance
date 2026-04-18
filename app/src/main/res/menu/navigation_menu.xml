@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <!-- Main Section -->
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_interventions"
+            android:icon="@drawable/ic_intervention"
+            android:title="@string/nav_interventions" />
+
+        <item
+            android:id="@+id/nav_interventions_to_assign"
+            android:icon="@drawable/ic_assignment"
+            android:title="@string/nav_interventions_to_assign" />
+
+        <item
+            android:id="@+id/nav_messages"
+            android:icon="@drawable/ic_message"
+            android:title="@string/nav_messages" />
+
+        <item
+            android:id="@+id/nav_client"
+            android:icon="@drawable/ic_client"
+            android:title="@string/nav_client" />
+
+        <item
+            android:id="@+id/nav_adresses"
+            android:icon="@drawable/ic_location"
+            android:title="@string/nav_adresses" />
+    </group>
+
+    <!-- Settings Section -->
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_parametres"
+            android:icon="@drawable/ic_settings"
+            android:title="@string/nav_parametres" />
+
+        <item
+            android:id="@+id/nav_a_propos"
+            android:icon="@drawable/ic_info"
+            android:title="@string/nav_a_propos" />
+    </group>
+
+    <!-- Logout -->
+    <item
+        android:id="@+id/nav_deconnexion"
+        android:icon="@drawable/ic_logout"
+        android:title="@string/nav_deconnexion" />
+
+</menu>

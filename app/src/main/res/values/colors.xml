@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Theme Colors (aliases for Material Design) -->
+    <color name="colorPrimary">#1976D2</color>
+    <color name="colorPrimaryDark">#1565C0</color>
+    <color name="colorPrimaryVariant">#1565C0</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+    <color name="colorSecondary">#FF5722</color>
+    <color name="colorSecondaryDark">#E64A19</color>
+    <color name="colorOnSecondary">#000000</color>
+
+    <!-- Additional Color Aliases -->
+    <color name="cardBackground">#FFFFFF</color>
+    <color name="textPrimary">#212121</color>
+    <color name="textSecondary">#757575</color>
+    <color name="colorPrimaryLight">#42A5F5</color>
+
+    <!-- Primary Colors -->
+    <color name="primary">#1976D2</color>
+    <color name="primary_dark">#1565C0</color>
+    <color name="primary_light">#42A5F5</color>
+    <color name="accent">#FF5722</color>
+    <color name="accent_dark">#E64A19</color>
+
+    <!-- Background Colors -->
+    <color name="background">#F5F5F5</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="card_background">#FFFFFF</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_hint">#9E9E9E</color>
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <!-- Status Colors -->
+    <color name="success">#4CAF50</color>
+    <color name="success_dark">#388E3C</color>
+    <color name="warning">#FFC107</color>
+    <color name="warning_dark">#FFA000</color>
+    <color name="error">#F44336</color>
+    <color name="error_dark">#D32F2F</color>
+    <color name="info">#2196F3</color>
+
+    <!-- Intervention Status Colors -->
+    <color name="intervention_completed">#4CAF50</color>
+    <color name="intervention_pending">#FFC107</color>
+    <color name="intervention_cancelled">#F44336</color>
+    <color name="intervention_in_progress">#2196F3</color>
+
+    <!-- Priority Colors -->
+    <color name="priority_normal">#4CAF50</color>
+    <color name="priority_urgent">#FF9800</color>
+    <color name="priority_critical">#F44336</color>
+
+    <!-- UI Element Colors -->
+    <color name="divider">#BDBDBD</color>
+    <color name="border">#E0E0E0</color>
+    <color name="ripple">#BDBDBD</color>
+
+    <!-- Navigation Drawer -->
+    <color name="drawer_background">#FFFFFF</color>
+    <color name="drawer_item_selected">#E3F2FD</color>
+    <color name="drawer_item_text">#424242</color>
+
+    <!-- Login Screen -->
+    <color name="login_background">#1976D2</color>
+    <color name="login_card">#FFFFFF</color>
+
+    <!-- Transparent Colors -->
+    <color name="transparent">#00000000</color>
+    <color name="semi_transparent_black">#80000000</color>
+    <color name="semi_transparent_white">#80FFFFFF</color>
+
+    <!-- Black and White -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="gray_light">#F5F5F5</color>
+    <color name="gray">#9E9E9E</color>
+    <color name="gray_dark">#424242</color>
+</resources>
