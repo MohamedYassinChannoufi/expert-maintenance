@@ -59,15 +59,13 @@
             android:parentActivityName=".ui.MainActivity"
             android:theme="@style/Theme.ExpertMaintenance.NoActionBar" />
 
-        <!-- Intervention Edit Activity - Commenté car n'existe pas encore -->
-        <!--
+        <!-- Intervention Edit Activity -->
         <activity
-            android:name=".ui.InterventionEditActivity"
+            android:name=".ui.edit.EditInterventionActivity"
             android:exported="false"
-            android:label="@string/title_activity_intervention_edit"
-            android:parentActivityName=".ui.InterventionDetailsActivity"
-            android:theme="@style/Theme.ExpertMaintenance" />
-        -->
+            android:label="Modifier l'intervention"
+            android:parentActivityName=".ui.details.InterventionDetailsActivity"
+            android:theme="@style/Theme.ExpertMaintenance.NoActionBar" />
 
         <!-- Image Capture Activity -->
         <activity
