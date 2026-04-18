@@ -3,6 +3,7 @@ package com.expert.maintenance.ui.details
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+
 import android.view.View
 import android.widget.Toast
 import android.app.Activity
@@ -23,6 +24,7 @@ import com.expert.maintenance.data.local.entity.Site
 import com.expert.maintenance.data.local.entity.Client
 import com.expert.maintenance.databinding.ActivityInterventionDetailsBinding
 import com.expert.maintenance.ui.ImageCaptureActivity
+import com.expert.maintenance.ui.edit.EditInterventionActivity
 
 import com.google.android.material.chip.Chip
 import kotlinx.coroutines.flow.first
@@ -53,6 +55,16 @@ class InterventionDetailsActivity : AppCompatActivity() {
         if (result.resultCode == RESULT_OK) {
             Log.d("PHOTO_DEBUG", "Photo capturée avec succès, rechargement...")
             loadPhotos()
+        }
+    }
+
+    // Activity result launcher for edit intervention
+    private val editInterventionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            Log.d("EDIT_DEBUG", "Intervention modifiée avec succès, rechargement...")
+            loadInterventionDetails()
         }
     }
 
@@ -94,11 +106,18 @@ class InterventionDetailsActivity : AppCompatActivity() {
     }
 
     private fun setupToolbar() {
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayShowTitleEnabled(false)
-
-        binding.toolbar.setNavigationOnClickListener {
+        // Setup back button
+        binding.btnBack.setOnClickListener {
             finish()
+        }
+
+        // Setup edit button
+        binding.btnEdit.setOnClickListener {
+            Toast.makeText(this, "✏️ Click crayon détecté! ID=$interventionId", Toast.LENGTH_LONG).show()
+            Log.d("EDIT_DEBUG", "=== BOUTON MODIFIER CLIQUÉ ===")
+            Log.d("EDIT_DEBUG", "interventionId = $interventionId")
+            Log.d("EDIT_DEBUG", "currentIntervention = ${currentIntervention?.titre}")
+            openEditIntervention()
         }
     }
 
@@ -342,7 +361,7 @@ class InterventionDetailsActivity : AppCompatActivity() {
 
     private fun displayInterventionDetails(intervention: Intervention) {
         // Toolbar title
-        binding.toolbar.title = "Intervention n° ${intervention.id}"
+        binding.toolbarTitle.text = "Intervention n° ${intervention.id}"
 
         // Header card
         binding.tvInterventionTitle.text = intervention.titre.uppercase(Locale.FRENCH)
@@ -461,6 +480,32 @@ class InterventionDetailsActivity : AppCompatActivity() {
             }
         } ?: run {
             Toast.makeText(this, "Adresse non disponible", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openEditIntervention() {
+        Log.d("EDIT_DEBUG", "=== OUVERTURE EditInterventionActivity ===")
+        Log.d("EDIT_DEBUG", "Cette activity: ${this::class.simpleName}")
+        Log.d("EDIT_DEBUG", "interventionId à passer: $interventionId")
+
+        if (interventionId <= 0) {
+            Log.e("EDIT_DEBUG", "ERREUR: interventionId est invalide ($interventionId)")
+            Toast.makeText(this, "❌ Erreur: ID intervention invalide", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val intent = Intent(this, com.expert.maintenance.ui.edit.EditInterventionActivity::class.java).apply {
+            putExtra("intervention_id", interventionId)
+            Log.d("EDIT_DEBUG", "Intent créé avec extra: intervention_id=$interventionId")
+        }
+
+        Log.d("EDIT_DEBUG", "Lancement de editInterventionLauncher...")
+        try {
+            editInterventionLauncher.launch(intent)
+            Log.d("EDIT_DEBUG", "✅ Lancement réussi")
+        } catch (e: Exception) {
+            Log.e("EDIT_DEBUG", "❌ ERREUR lors du lancement: ${e.message}", e)
+            Toast.makeText(this, "Erreur: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
