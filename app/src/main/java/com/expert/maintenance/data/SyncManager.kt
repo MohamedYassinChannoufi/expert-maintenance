@@ -313,13 +313,42 @@ class SyncManager(
 
     private suspend fun syncImagesMetadata(jsonArray: JSONArray) {
         val images = mutableListOf<Image>()
+
+        // Get all existing local images to preserve their BLOB data
+        val localImages = imageDao.getAllImages().first()
+        val localImagesMap = localImages.associateBy { it.id }
+
         for (i in 0 until jsonArray.length()) {
             val obj = jsonArray.getJSONObject(i)
+            val imageId = obj.getInt("id")
+
+            // Check if this image exists locally with BLOB data
+            val localImage = localImagesMap[imageId]
+            val imgData = if (localImage?.img != null) {
+                // Preserve local BLOB data (photo taken on this device)
+                Log.d(TAG, "📷 Image $imageId existe localement - conservation du BLOB")
+                localImage.img
+            } else {
+                // No local BLOB, check if server sent base64 data
+                val base64Img = obj.optString("img_base64", "")
+                if (base64Img.isNotEmpty()) {
+                    try {
+                        Log.d(TAG, "📥 Image $imageId: téléchargement depuis serveur (${base64Img.length} chars)")
+                        android.util.Base64.decode(base64Img, android.util.Base64.DEFAULT)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Erreur décodage Base64 pour image $imageId: ${e.message}")
+                        null
+                    }
+                } else {
+                    null
+                }
+            }
+
             images.add(
                 Image(
-                    id = obj.getInt("id"),
+                    id = imageId,
                     nom = obj.getString("nom"),
-                    img = null,
+                    img = imgData,
                     dateCapture = obj.getString("dateCapture"),
                     interventionId = obj.getInt("intervention_id"),
                     valsync = obj.getInt("valsync")
@@ -328,7 +357,7 @@ class SyncManager(
         }
         if (images.isNotEmpty()) {
             imageDao.insertAll(images)
-            Log.d(TAG, "${images.size} images synchronisées")
+            Log.d(TAG, "${images.size} images synchronisées (${images.count { it.img != null }} avec BLOB)")
         }
     }
 
