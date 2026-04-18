@@ -29,7 +29,7 @@ class SyncManager(
 ) {
     companion object {
         private const val TAG = "SyncManager"
-        private const val API_BASE_URL = "http://192.168.100.19:80/ExpertMaintenance/backend/api.php"
+        private const val API_BASE_URL = "http://192.168.100.19/ExpertMaintenance/backend/api.php"
         const val PREFS_NAME = "expert_maintenance_prefs"
         const val KEY_LAST_SYNC = "last_sync_timestamp"
         const val KEY_EMPLOYEE_ID = "current_employee_id"
@@ -438,6 +438,75 @@ class SyncManager(
 
         } catch (e: Exception) {
             Log.e(TAG, "Exception upload: ${e.message}")
+            return@withContext false
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    /**
+     * Upload a single image to the server immediately after capture
+     * This is called directly from ImageCaptureActivity after taking a photo
+     *
+     * @param imageData The image byte array
+     * @param interventionId The intervention ID this image belongs to
+     * @param imageName The name of the image file
+     * @param dateCapture The capture date
+     * @return true if upload was successful, false otherwise
+     */
+    suspend fun uploadImageToServer(
+        imageData: ByteArray,
+        interventionId: Int,
+        imageName: String,
+        dateCapture: String
+    ): Boolean = withContext(Dispatchers.IO) {
+        var connection: HttpURLConnection? = null
+        try {
+            val url = URL("$API_BASE_URL?action=upload_image")
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.doInput = true
+            connection.connectTimeout = 30000
+            connection.readTimeout = 60000 // Longer timeout for image upload
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Accept", "application/json")
+
+            // Build JSON payload
+            val jsonData = JSONObject().apply {
+                put("nom", imageName)
+                put("dateCapture", dateCapture)
+                put("intervention_id", interventionId)
+                // Convert byte array to Base64 for JSON transmission
+                val base64Image = Base64.encodeToString(imageData, Base64.NO_WRAP)
+                put("img", base64Image)
+            }
+
+            Log.d(TAG, "Envoi image au serveur: ${jsonData.toString().substring(0, kotlin.math.min(100, jsonData.toString().length))}...")
+
+            // Send request
+            connection.outputStream.use { os ->
+                os.write(jsonData.toString().toByteArray(Charsets.UTF_8))
+                os.flush()
+            }
+
+            val responseCode = connection.responseCode
+            Log.d(TAG, "Réponse serveur: $responseCode")
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                val responseJson = JSONObject(response)
+                val success = responseJson.optBoolean("success", false)
+                Log.d(TAG, "Upload réussi: $success")
+                return@withContext success
+            } else {
+                val errorBody = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: "Unknown error"
+                Log.e(TAG, "Erreur upload: $responseCode - $errorBody")
+                return@withContext false
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception upload: ${e.message}", e)
             return@withContext false
         } finally {
             connection?.disconnect()
