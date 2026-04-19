@@ -2,13 +2,10 @@ package com.expert.maintenance.ui
 
 import android.content.ContentValues
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
-import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
@@ -19,14 +16,11 @@ import androidx.lifecycle.lifecycleScope
 import com.expert.maintenance.R
 import com.expert.maintenance.data.AppDatabase
 import com.expert.maintenance.data.SyncManager
-import com.expert.maintenance.data.local.dao.ImageDao
 import com.expert.maintenance.data.local.entity.Image
 import com.expert.maintenance.databinding.ActivityImageCaptureBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
-import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -68,7 +62,6 @@ class ImageCaptureActivity : AppCompatActivity() {
         interventionId = intent.getIntExtra("intervention_id", 0)
         database = AppDatabase.getDatabase(this)
 
-        // Initialize SyncManager for image upload
         syncManager = SyncManager(
             applicationContext,
             database.employeeDao(),
@@ -88,10 +81,8 @@ class ImageCaptureActivity : AppCompatActivity() {
         }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
-
         setupToolbar()
 
-        // Request permissions before starting camera
         if (allPermissionsGranted()) {
             startCamera()
         } else {
@@ -109,6 +100,9 @@ class ImageCaptureActivity : AppCompatActivity() {
         binding.btnSave.setOnClickListener {
             finish()
         }
+
+        // Show capture button, hide save button initially
+        binding.btnSave.visibility = android.view.View.GONE
     }
 
     private fun setupToolbar() {
@@ -157,17 +151,30 @@ class ImageCaptureActivity : AppCompatActivity() {
 
             } catch (e: Exception) {
                 Log.e(TAG, "Erreur de démarrage de la caméra", e)
-                Toast.makeText(this, "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Erreur caméra: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }, ContextCompat.getMainExecutor(this))
     }
 
     private fun takePhoto() {
-        val imageCapture = imageCapture ?: return
+        val imageCapture = imageCapture ?: run {
+            Log.e(TAG, "❌ imageCapture is null")
+            Toast.makeText(this, "Caméra non initialisée", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Disable capture button to prevent multiple clicks
+        binding.btnCapture.isEnabled = false
+        binding.btnCapture.alpha = 0.5f
+
+        // Show loading indicator
+        binding.progressBar.visibility = android.view.View.VISIBLE
+
+        Log.d(TAG, "📸 Début capture photo...")
 
         // Create a media item for the captured image
         val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, SimpleDateFormat("yyyyMMdd_HHmmss", Locale.FRENCH).format(Date()))
+            put(MediaStore.MediaColumns.DISPLAY_NAME, "IMG_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.FRENCH).format(Date())}.jpg")
             put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
             put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/ExpertMaintenance")
         }
@@ -183,7 +190,12 @@ class ImageCaptureActivity : AppCompatActivity() {
             ContextCompat.getMainExecutor(this),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    Log.d(TAG, "Photo capturée: ${output.savedUri}")
+                    Log.d(TAG, "✅ Photo capturée: ${output.savedUri}")
+
+                    // Hide loading indicator
+                    binding.progressBar.visibility = android.view.View.GONE
+                    binding.btnCapture.isEnabled = true
+                    binding.btnCapture.alpha = 1.0f
 
                     // Save to database
                     lifecycleScope.launch {
@@ -192,79 +204,93 @@ class ImageCaptureActivity : AppCompatActivity() {
                             Log.d(TAG, "interventionId: $interventionId")
                             Log.d(TAG, "savedUri: ${output.savedUri}")
 
+                            // Wait a bit to ensure file is fully written
+                            kotlinx.coroutines.delay(500)
+
                             // Read the saved image file directly
-                            val inputStream = contentResolver.openInputStream(output.savedUri!!)
-                            val byteArray = inputStream?.use { it.readBytes() }
-                            inputStream?.close()
+                            output.savedUri?.let { uri ->
+                                val inputStream = contentResolver.openInputStream(uri)
+                                val byteArray = inputStream?.use { it.readBytes() }
+                                inputStream?.close()
 
-                            Log.d(TAG, "Byte array lu: ${byteArray?.size ?: 0} bytes")
+                                Log.d(TAG, "Byte array lu: ${byteArray?.size ?: 0} bytes")
 
-                            if (byteArray == null || byteArray.isEmpty()) {
-                                Log.e(TAG, "❌ Image bytes are empty")
+                                if (byteArray == null || byteArray.isEmpty()) {
+                                    Log.e(TAG, "❌ Image bytes are empty")
+                                    Toast.makeText(
+                                        this@ImageCaptureActivity,
+                                        "Erreur: Image vide",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@launch
+                                }
+
+                                Log.d(TAG, "✅ Image size: ${byteArray.size / 1024} KB")
+
+                                val imageName = Image(
+                                    id = 0,
+                                    nom = "IMG_${System.currentTimeMillis()}.jpg",
+                                    img = byteArray,
+                                    dateCapture = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.FRENCH).format(Date()),
+                                    interventionId = interventionId,
+                                    valsync = 0
+                                )
+
+                                Log.d(TAG, "📝 Insertion en BDD locale...")
+                                database.imageDao().insert(imageName)
+                                Log.d(TAG, "✅ Insertion locale réussie!")
+
+                                // Upload to server immediately
+                                Log.d(TAG, "📤 Envoi au serveur en cours...")
                                 Toast.makeText(
                                     this@ImageCaptureActivity,
-                                    "Erreur: Image vide",
+                                    "📤 Envoi photo au serveur...",
                                     Toast.LENGTH_SHORT
                                 ).show()
-                                return@launch
-                            }
 
-                            Log.d(TAG, "✅ Image size: ${byteArray.size} bytes")
+                                val uploadSuccess = syncManager.uploadImageToServer(
+                                    imageData = byteArray,
+                                    interventionId = interventionId,
+                                    imageName = imageName.nom,
+                                    dateCapture = imageName.dateCapture
+                                )
 
-                            val imageName = Image(
-                                id = 0,
-                                nom = "IMG_${System.currentTimeMillis()}.jpg",
-                                img = byteArray,
-                                dateCapture = SimpleDateFormat("yyyy-MM-dd", Locale.FRENCH).format(Date()),
-                                interventionId = interventionId,
-                                valsync = 0
-                            )
+                                if (uploadSuccess) {
+                                    val syncedImage = imageName.copy(valsync = 1)
+                                    database.imageDao().update(syncedImage)
+                                    Log.d(TAG, "✅ Image synchronisée avec le serveur!")
+                                    Toast.makeText(
+                                        this@ImageCaptureActivity,
+                                        "✓ Photo enregistrée et synchronisée (${byteArray.size / 1024} KB)",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    Log.w(TAG, "⚠️ Photo enregistrée localement mais pas envoyée au serveur")
+                                    Toast.makeText(
+                                        this@ImageCaptureActivity,
+                                        "⚠️ Photo enregistrée (sera synchronisée plus tard)",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
 
-                            Log.d(TAG, "📝 Insertion en BDD locale...")
-                            database.imageDao().insert(imageName)
-                            Log.d(TAG, "✅ Insertion locale réussie!")
+                                // Verify insertion
+                                val inserted = database.imageDao().getImagesByIntervention(interventionId).first()
+                                Log.d(TAG, "📊 Vérification: ${inserted.size} images dans la BDD pour interventionId=$interventionId")
 
-                            // Upload to server immediately
-                            Log.d(TAG, "📤 Envoi au serveur en cours...")
-                            Toast.makeText(
-                                this@ImageCaptureActivity,
-                                "📤 Envoi photo au serveur...",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                                // Return result to calling activity
+                                setResult(RESULT_OK)
 
-                            val uploadSuccess = syncManager.uploadImageToServer(
-                                imageData = byteArray,
-                                interventionId = interventionId,
-                                imageName = imageName.nom,
-                                dateCapture = imageName.dateCapture
-                            )
-
-                            if (uploadSuccess) {
-                                // Update local record: mark as synced
-                                val syncedImage = imageName.copy(valsync = 1)
-                                database.imageDao().update(syncedImage)
-                                Log.d(TAG, "✅ Image synchronisée avec le serveur!")
+                                // Wait a moment before finishing to ensure everything is saved
+                                kotlinx.coroutines.delay(1000)
+                                finish()
+                            } ?: run {
+                                Log.e(TAG, "❌ savedUri is null")
                                 Toast.makeText(
                                     this@ImageCaptureActivity,
-                                    "✓ Photo enregistrée et synchronisée (${byteArray.size / 1024} KB)",
+                                    "Erreur: URI null",
                                     Toast.LENGTH_SHORT
                                 ).show()
-                            } else {
-                                Log.w(TAG, "⚠️ Photo enregistrée localement mais pas envoyée au serveur")
-                                Toast.makeText(
-                                    this@ImageCaptureActivity,
-                                    "⚠️ Photo enregistrée (sera synchronisée plus tard)",
-                                    Toast.LENGTH_LONG
-                                ).show()
                             }
-
-                            // Verify insertion
-                            val inserted = database.imageDao().getImagesByIntervention(interventionId).first()
-                            Log.d(TAG, "📊 Vérification: ${inserted.size} images dans la BDD pour interventionId=$interventionId")
-
-                            // Return result to calling activity
-                            setResult(RESULT_OK)
-                            finish()
 
                         } catch (e: Exception) {
                             Log.e(TAG, "❌ ERREUR CRITIQUE lors de l'enregistrement en BDD", e)
@@ -276,16 +302,28 @@ class ImageCaptureActivity : AppCompatActivity() {
                                 "❌ Erreur: ${e.message}",
                                 Toast.LENGTH_LONG
                             ).show()
+
+                            // Hide loading indicator on error
+                            binding.progressBar.visibility = android.view.View.GONE
+                            binding.btnCapture.isEnabled = true
+                            binding.btnCapture.alpha = 1.0f
                         }
                     }
                 }
 
                 override fun onError(exception: ImageCaptureException) {
-                    Log.e(TAG, "Erreur de capture photo", exception)
+                    Log.e(TAG, "❌ Erreur de capture photo", exception)
+                    Log.e(TAG, "   Message: ${exception.message}")
+
+                    // Hide loading indicator
+                    binding.progressBar.visibility = android.view.View.GONE
+                    binding.btnCapture.isEnabled = true
+                    binding.btnCapture.alpha = 1.0f
+
                     Toast.makeText(
                         this@ImageCaptureActivity,
-                        "Erreur de capture: ${exception.message}",
-                        Toast.LENGTH_SHORT
+                        "Erreur capture: ${exception.message}",
+                        Toast.LENGTH_LONG
                     ).show()
                 }
             }
@@ -314,6 +352,34 @@ class ImageCaptureActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // Properly unbind camera to prevent BufferQueue abandonment
+        try {
+            cameraProvider?.unbindAll()
+            camera = null
+            preview = null
+            imageCapture = null
+        } catch (e: Exception) {
+            Log.w(TAG, "Erreur lors du nettoyage caméra", e)
+        }
         cameraExecutor.shutdown()
+        Log.d(TAG, "Camera resources released")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Unbind camera when activity is paused to prevent issues
+        try {
+            cameraProvider?.unbindAll()
+        } catch (e: Exception) {
+            Log.w(TAG, "Erreur pause caméra", e)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Rebind camera when activity resumes
+        if (allPermissionsGranted() && camera == null) {
+            startCamera()
+        }
     }
 }

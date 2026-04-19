@@ -32,7 +32,9 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import android.util.Base64
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -134,55 +136,76 @@ class InterventionDetailsActivity : AppCompatActivity() {
             try {
                 Log.d("PHOTO_DEBUG", "Téléchargement images depuis serveur pour interventionId=$interventionId")
 
-                val url = URL("$API_BASE_URL?action=get_images_for_intervention&intervention_id=$interventionId")
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connectTimeout = 15000
-                connection.readTimeout = 30000
-                connection.setRequestProperty("Accept", "application/json")
+                // Execute network operations on IO thread
+                val result = withContext(Dispatchers.IO) {
+                    val url = URL("$API_BASE_URL?action=get_images_for_intervention&intervention_id=$interventionId")
+                    val connection = url.openConnection() as HttpURLConnection
+                    connection.requestMethod = "GET"
+                    connection.connectTimeout = 15000
+                    connection.readTimeout = 30000
+                    connection.setRequestProperty("Accept", "application/json")
 
-                val responseCode = connection.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val jsonResponse = JSONObject(response)
+                    val responseCode = connection.responseCode
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        val response = connection.inputStream.bufferedReader().use { it.readText() }
+                        val jsonResponse = JSONObject(response)
+                        connection.disconnect()
 
-                    if (jsonResponse.optBoolean("success", false)) {
-                        val imagesArray = jsonResponse.getJSONArray("images")
-                        Log.d("PHOTO_DEBUG", "${imagesArray.length()} images trouvées sur le serveur")
+                        if (jsonResponse.optBoolean("success", false)) {
+                            val imagesArray = jsonResponse.getJSONArray("images")
+                            Log.d("PHOTO_DEBUG", "${imagesArray.length()} images trouvées sur le serveur")
 
-                        var downloadedCount = 0
-                        for (i in 0 until imagesArray.length()) {
-                            val imageObj = imagesArray.getJSONObject(i)
-                            val imgBase64 = imageObj.optString("img_base64", "")
+                            var downloadedCount = 0
+                            val imagesToSave = mutableListOf<Image>()
 
-                            if (imgBase64.isNotEmpty()) {
-                                // Decode Base64 to byte array
-                                val byteArray = Base64.decode(imgBase64, Base64.NO_WRAP)
+                            for (i in 0 until imagesArray.length()) {
+                                val imageObj = imagesArray.getJSONObject(i)
+                                val imgBase64 = imageObj.optString("img_base64", "")
 
-                                val imageName = Image(
-                                    id = imageObj.optInt("id", 0),
-                                    nom = imageObj.optString("nom", "IMG_${System.currentTimeMillis()}.jpg"),
-                                    img = byteArray,
-                                    dateCapture = imageObj.optString("dateCapture", ""),
-                                    interventionId = interventionId,
-                                    valsync = imageObj.optInt("valsync", 1)
-                                )
+                                if (imgBase64.isNotEmpty()) {
+                                    // Decode Base64 to byte array
+                                    val byteArray = Base64.decode(imgBase64, Base64.NO_WRAP)
 
-                                // Insert or replace in local database
-                                database.imageDao().insert(imageName)
-                                downloadedCount++
-                                Log.d("PHOTO_DEBUG", "Image téléchargée: ${imageName.nom} (${byteArray.size} bytes)")
+                                    val imageName = Image(
+                                        id = imageObj.optInt("id", 0),
+                                        nom = imageObj.optString("nom", "IMG_${System.currentTimeMillis()}.jpg"),
+                                        img = byteArray,
+                                        dateCapture = imageObj.optString("dateCapture", ""),
+                                        interventionId = interventionId,
+                                        valsync = imageObj.optInt("valsync", 1)
+                                    )
+
+                                    imagesToSave.add(imageName)
+                                    downloadedCount++
+                                    Log.d("PHOTO_DEBUG", "Image décodée: ${imageName.nom} (${byteArray.size} bytes)")
+                                }
                             }
+
+                            Log.d("PHOTO_DEBUG", "$downloadedCount images prêtes à sauvegarder")
+                            Pair(downloadedCount, imagesToSave)
+                        } else {
+                            Pair(0, emptyList<Image>())
                         }
-
-                        Log.d("PHOTO_DEBUG", "$downloadedCount images téléchargées et sauvegardées localement")
-
-                        // Reload photos from local database
-                        loadPhotos()
+                    } else {
+                        Log.e("PHOTO_DEBUG", "Erreur HTTP: $responseCode")
+                        Pair(0, emptyList<Image>())
                     }
                 }
 
-                connection.disconnect()
+                // Save to database on IO thread
+                val (downloadedCount, imagesToSave) = result
+                withContext(Dispatchers.IO) {
+                    for (image in imagesToSave) {
+                        database.imageDao().insert(image)
+                        Log.d("PHOTO_DEBUG", "Image sauvegardée en BDD: ${image.nom}")
+                    }
+                }
+
+                Log.d("PHOTO_DEBUG", "$downloadedCount images téléchargées et sauvegardées localement")
+
+                // Reload photos from local database (on Main thread)
+                loadPhotos()
+
             } catch (e: Exception) {
                 Log.e("PHOTO_DEBUG", "Erreur téléchargement images: ${e.message}", e)
                 // Silently fail - photos are not critical, will try again next time

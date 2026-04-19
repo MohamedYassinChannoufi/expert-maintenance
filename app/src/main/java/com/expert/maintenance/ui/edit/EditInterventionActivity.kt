@@ -20,8 +20,10 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -56,7 +58,7 @@ class EditInterventionActivity : AppCompatActivity() {
 
     // API URL
     companion object {
-        private const val API_BASE_URL = "http://192.168.100.39/ExpertMaintenance/backend/api.php"
+        private const val API_BASE_URL = "http://10.245.206.12/ExpertMaintenance/backend/api.php"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -386,26 +388,33 @@ class EditInterventionActivity : AppCompatActivity() {
 
                 // Update local database
                 database.interventionDao().update(updatedIntervention)
+                android.util.Log.d("EditIntervention", "✅ Intervention mise à jour en local (valsync=${updatedIntervention.valsync})")
 
-                // Send to server
-                val uploadSuccess = uploadToServer(updatedIntervention)
+                // Send to server (must be on IO thread for network operations)
+                android.util.Log.d("EditIntervention", "📤 Début upload vers serveur: $API_BASE_URL")
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val uploadSuccess = uploadToServer(updatedIntervention)
+                    withContext(Dispatchers.Main) {
+                        android.util.Log.d("EditIntervention", "Résultat upload: ${if (uploadSuccess) "✅ SUCCÈS" else "❌ ÉCHEC"}")
 
-                if (uploadSuccess) {
-                    Toast.makeText(
-                        this@EditInterventionActivity,
-                        "✅ Intervention modifiée avec succès",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    setResult(RESULT_OK)
-                    finish()
-                } else {
-                    Toast.makeText(
-                        this@EditInterventionActivity,
-                        "⚠️ Modification enregistrée localement (sera synchronisée plus tard)",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    setResult(RESULT_OK)
-                    finish()
+                        if (uploadSuccess) {
+                            Toast.makeText(
+                                this@EditInterventionActivity,
+                                "✅ Intervention modifiée et synchronisée",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            setResult(RESULT_OK)
+                            finish()
+                        } else {
+                            Toast.makeText(
+                                this@EditInterventionActivity,
+                                "⚠️ Modification enregistrée localement (sera synchronisée plus tard)",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            setResult(RESULT_OK)
+                            finish()
+                        }
+                    }
                 }
 
             } catch (e: Exception) {
@@ -419,8 +428,11 @@ class EditInterventionActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun uploadToServer(intervention: Intervention): Boolean {
-        return try {
+    private suspend fun uploadToServer(intervention: Intervention): Boolean = withContext(Dispatchers.IO) {
+        try {
+            android.util.Log.d("EditIntervention", "📡 URL: $API_BASE_URL?action=update_intervention")
+            android.util.Log.d("EditIntervention", "📦 Intervention ID: ${intervention.id}, valsync: ${intervention.valsync}")
+
             val url = URL("$API_BASE_URL?action=update_intervention")
             val connection = url.openConnection() as HttpURLConnection
 
@@ -431,6 +443,8 @@ class EditInterventionActivity : AppCompatActivity() {
             connection.readTimeout = 30000
             connection.setRequestProperty("Content-Type", "application/json")
             connection.setRequestProperty("Accept", "application/json")
+
+            android.util.Log.d("EditIntervention", "🔗 Connexion établie...")
 
             // Build JSON payload
             val jsonData = JSONObject().apply {
@@ -446,33 +460,44 @@ class EditInterventionActivity : AppCompatActivity() {
             }
 
             // Send request
+            val jsonPayload = jsonData.toString()
+            android.util.Log.d("EditIntervention", "📋 JSON envoyé: $jsonPayload")
+
             connection.outputStream.use { os ->
-                os.write(jsonData.toString().toByteArray(Charsets.UTF_8))
+                os.write(jsonPayload.toByteArray(Charsets.UTF_8))
                 os.flush()
             }
 
+            android.util.Log.d("EditIntervention", "📤 Données envoyées, attente réponse...")
+
             val responseCode = connection.responseCode
+            android.util.Log.d("EditIntervention", "📊 Code réponse HTTP: $responseCode")
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
+                android.util.Log.d("EditIntervention", "✅ Réponse serveur: $response")
+
                 val responseJson = JSONObject(response)
                 val success = responseJson.optBoolean("success", false)
 
                 if (!success) {
                     val error = responseJson.optString("error", "Erreur inconnue")
-                    android.util.Log.e("EditIntervention", "Erreur serveur: $error")
+                    android.util.Log.e("EditIntervention", "❌ Erreur serveur: $error")
+                } else {
+                    android.util.Log.d("EditIntervention", "✅ Upload réussi!")
                 }
 
                 success
             } else {
                 val errorBody = connection.errorStream?.bufferedReader()?.use { it.readText() }
                     ?: "Erreur HTTP $responseCode"
-                android.util.Log.e("EditIntervention", "Erreur upload: $errorBody")
+                android.util.Log.e("EditIntervention", "❌ Erreur upload: $errorBody")
                 false
             }
 
         } catch (e: Exception) {
-            android.util.Log.e("EditIntervention", "Exception upload: ${e.message}", e)
+            android.util.Log.e("EditIntervention", "❌ Exception upload: ${e.message}", e)
+            e.printStackTrace()
             false
         }
     }
