@@ -93,15 +93,21 @@
             android:parentActivityName=".ui.InterventionDetailsActivity"
             android:theme="@style/Theme.ExpertMaintenance.NoActionBar" />
 
-        <!-- Settings Activity - Commenté car n'existe pas encore -->
-        <!--
+        <!-- Settings Activity -->
         <activity
-            android:name=".ui.SettingsActivity"
+            android:name=".ui.settings.SettingsActivity"
             android:exported="false"
-            android:label="@string/title_activity_settings"
+            android:label="Paramètres"
             android:parentActivityName=".ui.MainActivity"
-            android:theme="@style/Theme.ExpertMaintenance" />
-        -->
+            android:theme="@style/Theme.ExpertMaintenance.NoActionBar" />
+
+        <!-- About Activity -->
+        <activity
+            android:name=".ui.about.AboutActivity"
+            android:exported="false"
+            android:label="À propos"
+            android:parentActivityName=".ui.settings.SettingsActivity"
+            android:theme="@style/Theme.ExpertMaintenance.NoActionBar" />
 
         <!-- File Provider for camera -->
         <provider

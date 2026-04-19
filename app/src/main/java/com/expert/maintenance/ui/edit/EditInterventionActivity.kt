@@ -56,7 +56,7 @@ class EditInterventionActivity : AppCompatActivity() {
 
     // API URL
     companion object {
-        private const val API_BASE_URL = "http://192.168.100.19/ExpertMaintenance/backend/api.php"
+        private const val API_BASE_URL = "http://192.168.100.39/ExpertMaintenance/backend/api.php"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -1,9 +1,13 @@
 package com.expert.maintenance.ui
 
+import android.util.Log
+
 import android.app.AlertDialog
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
@@ -131,21 +135,38 @@ class MainActivity : AppCompatActivity() {
                     // TODO: Navigate to messages screen
                 }
                 R.id.nav_client -> {
-                    Toast.makeText(this, "Client", Toast.LENGTH_SHORT).show()
-                    // TODO: Navigate to clients screen
+                    Log.d("NAV_DEBUG", "Client clicked - TODO: Create ClientsActivity")
+                    Toast.makeText(this, "Section Clients non disponible", Toast.LENGTH_SHORT).show()
+                    // TODO: Create ClientsActivity
+                    // val intent = Intent(this, com.expert.maintenance.ui.clients.ClientsActivity::class.java)
+                    // startActivity(intent)
                 }
                 R.id.nav_adresses -> {
                     Toast.makeText(this, "Adresses", Toast.LENGTH_SHORT).show()
                     // TODO: Navigate to addresses screen
                 }
                 R.id.nav_parametres -> {
-                    Toast.makeText(this, "Paramètres", Toast.LENGTH_SHORT).show()
-                    // TODO: Create SettingsActivity
-                    // startActivity(Intent(this, SettingsActivity::class.java))
+                    Log.d("NAV_DEBUG", "=== Paramètres clicked ===")
+                    try {
+                        Log.d("NAV_DEBUG", "Creating intent for SettingsActivity")
+                        val intent = Intent(this, com.expert.maintenance.ui.settings.SettingsActivity::class.java)
+                        Log.d("NAV_DEBUG", "Intent created, starting activity...")
+                        startActivity(intent)
+                        Log.d("NAV_DEBUG", "SettingsActivity started successfully")
+                    } catch (e: Exception) {
+                        Log.e("NAV_ERROR", "Failed to start SettingsActivity: ${e.message}", e)
+                        e.printStackTrace()
+                    }
                 }
                 R.id.nav_a_propos -> {
-                    Toast.makeText(this, "À propos", Toast.LENGTH_SHORT).show()
-                    // TODO: Show about dialog
+                    Log.d("NAV_DEBUG", "À propos clicked")
+                    try {
+                        val intent = Intent(this, com.expert.maintenance.ui.about.AboutActivity::class.java)
+                        startActivity(intent)
+                        Log.d("NAV_DEBUG", "AboutActivity started successfully")
+                    } catch (e: Exception) {
+                        Log.e("NAV_ERROR", "Failed to start AboutActivity: ${e.message}", e)
+                    }
                 }
                 R.id.nav_deconnexion -> {
                     showLogoutConfirmation()

@@ -80,7 +80,7 @@ class InterventionDetailsActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_INTERVENTION_ID = "intervention_id"
-        private const val API_BASE_URL = "http://192.168.100.19/ExpertMaintenance/backend/api.php"
+        private const val API_BASE_URL = "http://192.168.100.39/ExpertMaintenance/backend/api.php"
     }
 
 
