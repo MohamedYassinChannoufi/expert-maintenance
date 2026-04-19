@@ -117,6 +117,8 @@
             android:parentActivityName=".ui.MainActivity"
             android:theme="@style/Theme.ExpertMaintenance.NoActionBar" />
 
+
+
         <!-- File Provider for camera -->
         <provider
             android:name="androidx.core.content.FileProvider"
