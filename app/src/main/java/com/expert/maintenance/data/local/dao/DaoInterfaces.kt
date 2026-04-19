@@ -279,9 +279,6 @@ interface ImageDao {
 
     @Query("SELECT * FROM images WHERE valsync > :lastSync")
     suspend fun getImagesToUpdate(lastSync: Int): List<Image>
-
-    @Query("SELECT * FROM images WHERE valsync = 0 ORDER BY dateCapture DESC")
-    suspend fun getUnsyncedImages(): List<Image>
 }
 
 /**

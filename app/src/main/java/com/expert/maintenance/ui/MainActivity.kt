@@ -135,11 +135,15 @@ class MainActivity : AppCompatActivity() {
                     // TODO: Navigate to messages screen
                 }
                 R.id.nav_client -> {
-                    Log.d("NAV_DEBUG", "Client clicked - TODO: Create ClientsActivity")
-                    Toast.makeText(this, "Section Clients non disponible", Toast.LENGTH_SHORT).show()
-                    // TODO: Create ClientsActivity
-                    // val intent = Intent(this, com.expert.maintenance.ui.clients.ClientsActivity::class.java)
-                    // startActivity(intent)
+                    Log.d("NAV_DEBUG", "Client clicked")
+                    try {
+                        val intent = Intent(this, com.expert.maintenance.ui.clients.ClientsActivity::class.java)
+                        startActivity(intent)
+                        Log.d("NAV_DEBUG", "ClientsActivity started successfully")
+                    } catch (e: Exception) {
+                        Log.e("NAV_ERROR", "Failed to start ClientsActivity: ${e.message}", e)
+                        Toast.makeText(this, "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
                 }
                 R.id.nav_adresses -> {
                     Toast.makeText(this, "Adresses", Toast.LENGTH_SHORT).show()
