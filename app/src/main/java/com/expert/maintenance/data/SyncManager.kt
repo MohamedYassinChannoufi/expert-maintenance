@@ -29,7 +29,7 @@ class SyncManager(
 ) {
     companion object {
         private const val TAG = "SyncManager"
-        private const val API_BASE_URL = "http://192.168.100.19/ExpertMaintenance/backend/api.php"
+        private const val API_BASE_URL = "http://192.168.100.39/ExpertMaintenance/backend/api.php"
         const val PREFS_NAME = "expert_maintenance_prefs"
         const val KEY_LAST_SYNC = "last_sync_timestamp"
         const val KEY_EMPLOYEE_ID = "current_employee_id"
