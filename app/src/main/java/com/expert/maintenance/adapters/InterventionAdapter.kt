@@ -15,10 +15,6 @@ import com.google.android.material.card.MaterialCardView
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-/**
- * RecyclerView Adapter for displaying interventions list
- * Handles item binding, click events, and completion status toggles
- */
 class InterventionAdapter(
     private val onInterventionClick: (Intervention) -> Unit,
     private val onCompletionToggle: (Intervention, Boolean) -> Unit
@@ -35,9 +31,6 @@ class InterventionAdapter(
         holder.bind(intervention, onInterventionClick, onCompletionToggle)
     }
 
-    /**
-     * ViewHolder for intervention items
-     */
     class InterventionViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val cardIntervention: MaterialCardView = itemView.findViewById(R.id.card_intervention)
         private val textTitle: TextView = itemView.findViewById(R.id.text_intervention_title)
@@ -120,9 +113,6 @@ class InterventionAdapter(
         }
     }
 
-    /**
-     * DiffUtil callback for efficient list updates
-     */
     class InterventionDiffCallback : DiffUtil.ItemCallback<Intervention>() {
         override fun areItemsTheSame(oldItem: Intervention, newItem: Intervention): Boolean {
             return oldItem.id == newItem.id
@@ -133,7 +123,6 @@ class InterventionAdapter(
         }
 
         override fun getChangePayload(oldItem: Intervention, newItem: Intervention): Any? {
-            // Return specific changes for partial updates
             return if (oldItem.copy(terminee = true) == newItem.copy(terminee = true)) {
                 // Only completion status changed
                 "COMPLETION_STATUS"

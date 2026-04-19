@@ -25,10 +25,7 @@ import com.expert.maintenance.data.local.entity.Site
 import com.expert.maintenance.data.local.entity.Task
 import java.util.Date
 
-/**
- * Local SQLite Database using Room
- * Stores all data for offline access and synchronization
- */
+
 @Database(
     entities = [
         Employee::class,
@@ -76,9 +73,7 @@ abstract class AppDatabase : RoomDatabase() {
     }
 }
 
-/**
- * Type converters for Room database
- */
+
 class Converters {
     @androidx.room.TypeConverter
     fun fromTimestamp(value: Long?): Date? {

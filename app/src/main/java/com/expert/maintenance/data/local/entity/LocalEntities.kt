@@ -6,9 +6,6 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-/**
- * Employee entity - represents a technician/worker
- */
 @Entity(tableName = "employes")
 data class Employee(
     @PrimaryKey val id: Int,
@@ -21,9 +18,7 @@ data class Employee(
     val valsync: Int
 )
 
-/**
- * Client entity - represents a customer company
- */
+
 @Entity(tableName = "clients")
 data class Client(
     @PrimaryKey val id: Int,
@@ -37,9 +32,7 @@ data class Client(
     val valsync: Int
 )
 
-/**
- * Site entity - represents a work location
- */
+
 @Entity(
     tableName = "sites",
     foreignKeys = [
@@ -66,9 +59,7 @@ data class Site(
     val valsync: Int
 )
 
-/**
- * Priority entity - represents intervention priority levels
- */
+
 @Entity(tableName = "priorites")
 data class Priority(
     @PrimaryKey val id: Int,
@@ -76,9 +67,7 @@ data class Priority(
     val valsync: Int
 )
 
-/**
- * Intervention entity - represents a maintenance task
- */
+
 @Entity(
     tableName = "interventions",
     foreignKeys = [
@@ -117,9 +106,7 @@ data class Intervention(
     val valsync: Int
 )
 
-/**
- * Task entity - represents specific tasks within an intervention
- */
+
 @Entity(
     tableName = "taches",
     foreignKeys = [
@@ -143,9 +130,7 @@ data class Task(
     val valsync: Int
 )
 
-/**
- * Image entity - represents photos taken during interventions
- */
+
 @Entity(
     tableName = "images",
     foreignKeys = [
@@ -167,9 +152,7 @@ data class Image(
     val valsync: Int
 )
 
-/**
- * Contract entity - represents service contracts
- */
+
 @Entity(
     tableName = "contrats",
     foreignKeys = [
@@ -191,9 +174,7 @@ data class Contract(
     val valsync: Int
 )
 
-/**
- * Employee-Intervention junction entity
- */
+
 @Entity(
     tableName = "employes_interventions",
     foreignKeys = [

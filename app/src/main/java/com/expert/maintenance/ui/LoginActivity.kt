@@ -32,8 +32,6 @@ class LoginActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "LOGIN_DEBUG"
-        // ✅ URL pour appareil physique sur même réseau WiFi
-        // Pour émulateur Android: utiliser "http://10.0.2.2:80/ExpertMaintenance/backend/api.php"
         private const val API_BASE_URL = "http://10.245.206.12/ExpertMaintenance/backend/api.php"
 
         private const val PREFS_NAME = "expert_maintenance_prefs"
@@ -67,9 +65,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
-        binding.btnLogin.setOnClickListener {
-            attemptLogin()
-        }
+        binding.btnLogin.setOnClickListener { attemptLogin() }
 
         binding.etPassword.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_GO) {
@@ -121,8 +117,7 @@ class LoginActivity : AppCompatActivity() {
                 var connection: HttpURLConnection? = null
                 try {
                     val fullUrl = "$API_BASE_URL?action=authenticate"
-                    Log.d(TAG, "Tentative de connexion à: $fullUrl")
-                    Log.d(TAG, "Login: $login")
+                    Log.d(TAG, "Connexion à: $fullUrl, login: $login")
 
                     val url = URL(fullUrl)
                     connection = url.openConnection() as HttpURLConnection
@@ -189,29 +184,21 @@ class LoginActivity : AppCompatActivity() {
 
                 } catch (e: java.net.ConnectException) {
                     Log.e(TAG, "Échec de connexion: ${e.message}")
-                    Log.e(TAG, "Vérifiez que:")
-                    Log.e(TAG, "1. Votre téléphone est sur le même WiFi que le Mac (192.168.5.x)")
-                    Log.e(TAG, "2. Apache/XAMPP est en cours d'exécution")
-                    Log.e(TAG, "3. L'URL est correcte: $API_BASE_URL")
                     Result.failure<Employee>(e)
                 } catch (e: java.net.UnknownHostException) {
                     Log.e(TAG, "Hôte inconnu: ${e.message}")
-                    Log.e(TAG, "URL utilisée: $API_BASE_URL")
                     Result.failure<Employee>(e)
                 } catch (e: java.net.SocketTimeoutException) {
-                    Log.e(TAG, "Timeout de connexion: ${e.message}")
+                    Log.e(TAG, "Timeout: ${e.message}")
                     Result.failure<Employee>(e)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Erreur inattendue: ${e.javaClass.simpleName}")
-                    Log.e(TAG, "Message: ${e.message ?: "null"}")
-                    Log.e(TAG, "Stack trace:", e)
+                    Log.e(TAG, "Erreur: ${e.message}")
                     Result.failure<Employee>(e)
                 } finally {
                     connection?.disconnect()
                 }
             }
 
-            // Handle result on main thread
             result.fold(
                 onSuccess = { employee ->
                     employeeDao.insert(employee)
@@ -220,21 +207,13 @@ class LoginActivity : AppCompatActivity() {
                     performInitialSync()
                 },
                 onFailure = { error: Throwable ->
-                    when (error) {
-                        is java.net.ConnectException -> {
-                            showError("Impossible de se connecter au serveur\nVérifiez que vous êtes sur le même WiFi")
-                        }
-                        is java.net.UnknownHostException -> {
-                            showError("Hôte introuvable. Vérifiez l'adresse du serveur")
-                        }
-                        is java.net.SocketTimeoutException -> {
-                            showError("Délai de connexion dépassé. Vérifiez le réseau")
-                        }
-                        else -> {
-                            val errorMsg = error.message ?: "Erreur inconnue"
-                            showError("Erreur: $errorMsg\nVérifiez connexion réseau")
-                        }
+                    val message = when (error) {
+                        is java.net.ConnectException -> "Impossible de se connecter au serveur"
+                        is java.net.UnknownHostException -> "Hôte introuvable"
+                        is java.net.SocketTimeoutException -> "Délai dépassé"
+                        else -> error.message ?: "Erreur inconnue"
                     }
+                    showError(message)
                     setLoadingState(false)
                 }
             )
@@ -259,14 +238,9 @@ class LoginActivity : AppCompatActivity() {
 
     private fun performInitialSync() {
         lifecycleScope.launch {
-            try {
-                val result = syncManager.performFullSync()
-                startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                finish()
-            } catch (e: Exception) {
-                startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                finish()
-            }
+            syncManager.performFullSync()
+            startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+            finish()
         }
     }
 

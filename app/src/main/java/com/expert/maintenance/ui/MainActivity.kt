@@ -1,12 +1,10 @@
 package com.expert.maintenance.ui
 
-import android.util.Log
-
 import android.app.AlertDialog
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
-import android.view.Menu
+import android.util.Log
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
@@ -21,6 +19,7 @@ import com.expert.maintenance.data.AppDatabase
 import com.expert.maintenance.data.SyncManager
 import com.expert.maintenance.data.local.dao.InterventionDao
 import com.expert.maintenance.data.local.entity.Intervention
+import com.expert.maintenance.ui.details.InterventionDetailsActivity
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
@@ -28,19 +27,9 @@ import com.google.android.material.textview.MaterialTextView
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-import com.expert.maintenance.ui.details.InterventionDetailsActivity
 
-/**
- * Main Activity - Displays interventions for the selected day
- * Features:
- * - Date navigation (previous/next day)
- * - Interventions list with completion checkbox
- * - Navigation drawer with menu options
- * - Manual synchronization trigger
- */
 class MainActivity : AppCompatActivity() {
 
-    // UI Components
     private lateinit var toolbar: MaterialToolbar
     private lateinit var navigationView: NavigationView
     private lateinit var drawerToggle: ActionBarDrawerToggle
@@ -50,12 +39,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvInterventionsCount: MaterialTextView
     private lateinit var layoutEmptyState: View
     private lateinit var fabSync: FloatingActionButton
-
-    // Navigation buttons
     private lateinit var btnPreviousDay: View
     private lateinit var btnNextDay: View
-
-    // Data
     private lateinit var interventionDao: InterventionDao
     private var currentDate: Calendar = Calendar.getInstance()
     private var employeeId: Int = 0
@@ -66,21 +51,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialize database
         interventionDao = AppDatabase.getDatabase(this).interventionDao()
 
-        // Get employee ID from preferences
         val prefs = getSharedPreferences("expert_maintenance_prefs", MODE_PRIVATE)
         employeeId = prefs.getInt("current_employee_id", 0)
 
         if (employeeId == 0) {
-            // No employee logged in, redirect to login
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
             return
         }
 
-        // Initialize UI
         initViews()
         setupToolbar()
         setupNavigationDrawer()
@@ -119,55 +100,40 @@ class MainActivity : AppCompatActivity() {
         findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawer_layout).addDrawerListener(drawerToggle)
         drawerToggle.syncState()
 
-        // Handle navigation menu item clicks
         navigationView.setNavigationItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.nav_interventions -> {
-                    // Already on this screen
                     Toast.makeText(this, "Interventions", Toast.LENGTH_SHORT).show()
                 }
                 R.id.nav_interventions_to_assign -> {
                     Toast.makeText(this, "Interventions à assigner", Toast.LENGTH_SHORT).show()
-                    // TODO: Navigate to assignments screen
                 }
                 R.id.nav_messages -> {
                     Toast.makeText(this, "Messages", Toast.LENGTH_SHORT).show()
-                    // TODO: Navigate to messages screen
                 }
                 R.id.nav_client -> {
-                    Log.d("NAV_DEBUG", "Client clicked")
                     try {
                         val intent = Intent(this, com.expert.maintenance.ui.clients.ClientsActivity::class.java)
                         startActivity(intent)
-                        Log.d("NAV_DEBUG", "ClientsActivity started successfully")
                     } catch (e: Exception) {
-                        Log.e("NAV_ERROR", "Failed to start ClientsActivity: ${e.message}", e)
                         Toast.makeText(this, "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
                 R.id.nav_adresses -> {
                     Toast.makeText(this, "Adresses", Toast.LENGTH_SHORT).show()
-                    // TODO: Navigate to addresses screen
                 }
                 R.id.nav_parametres -> {
-                    Log.d("NAV_DEBUG", "=== Paramètres clicked ===")
                     try {
-                        Log.d("NAV_DEBUG", "Creating intent for SettingsActivity")
                         val intent = Intent(this, com.expert.maintenance.ui.settings.SettingsActivity::class.java)
-                        Log.d("NAV_DEBUG", "Intent created, starting activity...")
                         startActivity(intent)
-                        Log.d("NAV_DEBUG", "SettingsActivity started successfully")
                     } catch (e: Exception) {
-                        Log.e("NAV_ERROR", "Failed to start SettingsActivity: ${e.message}", e)
                         e.printStackTrace()
                     }
                 }
                 R.id.nav_a_propos -> {
-                    Log.d("NAV_DEBUG", "À propos clicked")
                     try {
                         val intent = Intent(this, com.expert.maintenance.ui.about.AboutActivity::class.java)
                         startActivity(intent)
-                        Log.d("NAV_DEBUG", "AboutActivity started successfully")
                     } catch (e: Exception) {
                         Log.e("NAV_ERROR", "Failed to start AboutActivity: ${e.message}", e)
                     }
@@ -191,7 +157,6 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        // Click handling is done through the adapter's onInterventionClick callback
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
     }
@@ -209,7 +174,6 @@ class MainActivity : AppCompatActivity() {
             loadInterventions()
         }
 
-        // Long press to go to today
         tvCurrentDate.setOnLongClickListener {
             currentDate = Calendar.getInstance()
             updateDateDisplay()
@@ -217,7 +181,6 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // Click on date to open date picker for quick navigation
         tvCurrentDate.setOnClickListener {
             showDatePicker()
         }
@@ -232,15 +195,11 @@ class MainActivity : AppCompatActivity() {
                 currentDate.set(Calendar.DAY_OF_MONTH, dayOfMonth)
                 updateDateDisplay()
                 loadInterventions()
-                Toast.makeText(this, "Date sélectionnée: $dayOfMonth/${month + 1}/$year", Toast.LENGTH_SHORT).show()
             },
             currentDate.get(Calendar.YEAR),
             currentDate.get(Calendar.MONTH),
             currentDate.get(Calendar.DAY_OF_MONTH)
-        ).apply {
-            // Optionally limit to past dates only
-            // datePicker.maxDate = System.currentTimeMillis()
-        }.show()
+        ).show()
     }
 
     private fun setupFab() {
@@ -265,7 +224,6 @@ class MainActivity : AppCompatActivity() {
         val dateStr = databaseDateFormat.format(currentDate.time)
 
         lifecycleScope.launchWhenCreated {
-            // Use getInterventionsByDate to show all interventions (employee filter not working yet)
             interventionDao.getInterventionsByDate(dateStr)
                 .collect { interventions ->
                     updateUI(interventions)
@@ -284,11 +242,10 @@ class MainActivity : AppCompatActivity() {
 
             val count = interventions.size
             val completed = interventions.count { it.terminee }
-            val remaining = count - completed
 
             tvInterventionsCount.text = if (completed == 0) {
                 "$count ${getString(R.string.interventions_to_do)}"
-            } else if (remaining == 0) {
+            } else if (completed == count) {
                 getString(R.string.interventions_all_completed)
             } else {
                 "${getString(R.string.interventions_summary)}: $completed/$count"
@@ -337,9 +294,6 @@ class MainActivity : AppCompatActivity() {
 
             interventionDao.update(updatedIntervention)
 
-            // Upload to server
-            // SyncManager.uploadInterventionUpdate(updatedIntervention)
-
             Toast.makeText(
                 this@MainActivity,
                 if (isCompleted) getString(R.string.intervention_completed) else getString(R.string.intervention_pending),
@@ -353,18 +307,18 @@ class MainActivity : AppCompatActivity() {
     private fun performSync() {
         Toast.makeText(this, R.string.sync_start, Toast.LENGTH_SHORT).show()
 
-        // Use SyncManager to perform synchronization
         lifecycleScope.launchWhenCreated {
-            val syncManager = com.expert.maintenance.data.SyncManager(
+            val database = AppDatabase.getDatabase(this@MainActivity)
+            val syncManager = SyncManager(
                 this@MainActivity,
-                AppDatabase.getDatabase(this@MainActivity).employeeDao(),
-                AppDatabase.getDatabase(this@MainActivity).clientDao(),
-                AppDatabase.getDatabase(this@MainActivity).siteDao(),
-                AppDatabase.getDatabase(this@MainActivity).interventionDao(),
-                AppDatabase.getDatabase(this@MainActivity).taskDao(),
-                AppDatabase.getDatabase(this@MainActivity).priorityDao(),
-                AppDatabase.getDatabase(this@MainActivity).imageDao(),
-                AppDatabase.getDatabase(this@MainActivity).employeeInterventionDao()
+                database.employeeDao(),
+                database.clientDao(),
+                database.siteDao(),
+                database.interventionDao(),
+                database.taskDao(),
+                database.priorityDao(),
+                database.imageDao(),
+                database.employeeInterventionDao()
             )
 
             val result = syncManager.performFullSync()
@@ -394,14 +348,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun logout() {
-        // Clear preferences
         val prefs = getSharedPreferences("expert_maintenance_prefs", MODE_PRIVATE)
         prefs.edit().clear().apply()
 
-        // Redirect to login
         startActivity(Intent(this, LoginActivity::class.java))
         finish()
     }
-
-
 }
